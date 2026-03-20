@@ -1,0 +1,193 @@
+{
+  "title": "Plant Disease AI — System Dashboard",
+  "uid": "plant-disease-main",
+  "version": 1,
+  "schemaVersion": 36,
+  "refresh": "30s",
+  "tags": ["plant-disease", "ai", "production"],
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Predictions per Minute",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{path=\"/api/v1/predictions/\",method=\"POST\"}[1m]) * 60",
+          "legendFormat": "Predictions/min"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "reqpm"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "API Latency (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{path=~\"/api/v1/predictions.*\"}[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{path=~\"/api/v1/predictions.*\"}[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{path=~\"/api/v1/predictions.*\"}[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Error Rate (%)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100",
+          "legendFormat": "Error Rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Avg Prediction Confidence",
+      "type": "gauge",
+      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "plant_disease_avg_confidence",
+          "legendFormat": "Avg Confidence"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 1, "unit": "percentunit",
+          "thresholds": {
+            "steps": [
+              { "color": "red",    "value": 0 },
+              { "color": "yellow", "value": 0.6 },
+              { "color": "green",  "value": 0.85 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Active Celery Workers",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "flower_workers_online_count",
+          "legendFormat": "Workers Online"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Celery Queue Depth",
+      "type": "timeseries",
+      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "flower_queue_length{queue=\"predictions\"}",
+          "legendFormat": "predictions queue"
+        },
+        {
+          "expr": "flower_queue_length{queue=\"retraining\"}",
+          "legendFormat": "retraining queue"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Top 10 Detected Diseases (24h)",
+      "type": "barchart",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 10 },
+      "targets": [
+        {
+          "expr": "topk(10, plant_disease_detections_total)",
+          "legendFormat": "{{disease}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "DB Connection Pool",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 5 },
+      "targets": [
+        {
+          "expr": "pg_stat_activity_count",
+          "legendFormat": "Active DB connections"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Redis Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 17, "w": 12, "h": 5 },
+      "targets": [
+        {
+          "expr": "redis_memory_used_bytes",
+          "legendFormat": "Memory used"
+        },
+        {
+          "expr": "redis_memory_max_bytes",
+          "legendFormat": "Memory limit"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": "Prometheus",
+        "enable": true,
+        "expr": "changes(plant_disease_deployment_timestamp[5m]) > 0",
+        "iconColor": "blue",
+        "step": "60s",
+        "titleFormat": "Deployment"
+      }
+    ]
+  }
+}

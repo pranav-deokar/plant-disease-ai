@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plant-disease-worker
+  namespace: plant-disease-ai
+  labels:
+    app: plant-disease-worker
+    component: celery
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: plant-disease-worker
+  template:
+    metadata:
+      labels:
+        app: plant-disease-worker
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      containers:
+        - name: worker
+          image: your-registry/plant-disease-api:v1.0.0
+          command:
+            - celery
+            - -A
+            - app.tasks.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency=2
+            - -Q
+            - predictions,retraining
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: plant-disease-secrets
+                  key: database_url
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: plant-disease-secrets
+                  key: secret_key
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: plant-disease-config
+                  key: redis_url
+            - name: MONGODB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: plant-disease-secrets
+                  key: mongodb_url
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "4000m"
+              memory: "8Gi"
+          volumeMounts:
+            - name: model-weights
+              mountPath: /app/models
+              readOnly: true
+          livenessProbe:
+            exec:
+              command:
+                - celery
+                - -A
+                - app.tasks.celery_app
+                - inspect
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 10
+      volumes:
+        - name: model-weights
+          persistentVolumeClaim:
+            claimName: model-weights-pvc
+---
+# Worker HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: plant-disease-worker-hpa
+  namespace: plant-disease-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: plant-disease-worker
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75

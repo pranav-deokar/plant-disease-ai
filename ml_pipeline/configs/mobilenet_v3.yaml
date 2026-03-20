@@ -1,0 +1,46 @@
+# MobileNetV3-Large Training Configuration
+# Lightweight model for edge / low-latency deployment
+# Use: python train.py --config configs/mobilenet_v3.yaml
+
+model: mobilenet_v3
+architecture: MobileNetV3PlantDisease
+description: "Edge model - fast inference, 224x224 input"
+
+data_dir: data/processed/plantvillage
+output_dir: models
+val_split: 0.15
+test_split: 0.10
+seed: 42
+
+epochs: 20
+batch_size: 64          # larger batch OK with smaller model
+num_workers: 4
+pin_memory: true
+
+learning_rate: 2.0e-4
+backbone_lr_multiplier: 0.3
+weight_decay: 1.0e-4
+optimizer: adamw
+
+scheduler: cosine_annealing_warm_restarts
+T_0: 7
+T_mult: 2
+
+dropout: 0.2
+label_smoothing: 0.1
+grad_clip: 1.0
+use_amp: true
+patience: 6
+monitor: val_f1_macro
+mode: max
+
+mlflow_experiment: plant_disease_detection
+mlflow_tracking_uri: http://localhost:5000
+mlflow_tags:
+  model_family: mobilenet
+  deployment_target: edge
+
+target_metrics:
+  val_accuracy: 0.96
+  val_f1_macro: 0.95
+  inference_ms_cpu: 120

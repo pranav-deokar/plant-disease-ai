@@ -1,0 +1,62 @@
+# EfficientNet-B4 Training Configuration
+# Use: python train.py --config configs/efficientnet_b4.yaml
+
+model: efficientnet_b4
+architecture: EfficientNetB4PlantDisease
+description: "Production model - highest accuracy, 380x380 input"
+
+# ── Data ──────────────────────────────────────────────────────────────────────
+data_dir: data/processed/plantvillage
+output_dir: models
+val_split: 0.15
+test_split: 0.10
+seed: 42
+
+# ── Training ──────────────────────────────────────────────────────────────────
+epochs: 30
+batch_size: 32
+num_workers: 4
+pin_memory: true
+
+# ── Optimizer ─────────────────────────────────────────────────────────────────
+learning_rate: 1.0e-4         # classifier head LR
+backbone_lr_multiplier: 0.2   # backbone = LR / 5
+weight_decay: 1.0e-4
+optimizer: adamw
+
+# ── Scheduler ─────────────────────────────────────────────────────────────────
+scheduler: cosine_annealing_warm_restarts
+T_0: 10
+T_mult: 2
+eta_min: 1.0e-6
+
+# ── Regularization ────────────────────────────────────────────────────────────
+dropout: 0.4
+label_smoothing: 0.1
+grad_clip: 1.0
+
+# ── AMP ───────────────────────────────────────────────────────────────────────
+use_amp: true     # Automatic Mixed Precision (requires CUDA)
+
+# ── Early stopping ────────────────────────────────────────────────────────────
+patience: 7       # stop if val F1 doesn't improve for 7 epochs
+monitor: val_f1_macro
+mode: max
+
+# ── Checkpointing ─────────────────────────────────────────────────────────────
+save_top_k: 3          # keep top 3 checkpoints
+checkpoint_metric: val_f1_macro
+
+# ── MLflow ────────────────────────────────────────────────────────────────────
+mlflow_experiment: plant_disease_detection
+mlflow_tracking_uri: http://localhost:5000
+mlflow_tags:
+  model_family: efficientnet
+  dataset: plantvillage_v3
+  team: ml-core
+
+# ── Expected performance (target) ────────────────────────────────────────────
+target_metrics:
+  val_accuracy: 0.98
+  val_f1_macro: 0.97
+  test_accuracy: 0.98

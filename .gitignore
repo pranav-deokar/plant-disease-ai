@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+.venv/
+venv/
+env/
+*.pyc
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Model weights (large files — store in S3/DVC)
+backend/models/*.pth
+backend/models/*.pt
+backend/models/*.onnx
+ml_pipeline/models/
+
+# Dataset (large — download separately)
+ml_pipeline/data/raw/
+ml_pipeline/data/processed/
+ml_pipeline/data/augmented/
+
+# Reports and notebooks output
+ml_pipeline/reports/
+*.png
+*.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+coverage.xml
+.coverage
+
+# Docker
+*.log
+
+# Node.js
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+frontend/.env.production
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+Thumbs.db
+
+# Kubernetes secrets (never commit)
+infrastructure/kubernetes/secrets*.yaml
+infrastructure/nginx/ssl/
+
+# DVC
+.dvc/cache/
+
+data/
+ml_pipeline/data/
+ml_pipeline/data/processed/
+ml_pipeline/data/raw/
