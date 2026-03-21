@@ -10,6 +10,8 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 import structlog
 import os
+import asyncio
+
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.routes import auth, predictions, diseases, users, admin, health
@@ -29,11 +31,14 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized")
 
-    # Load ML models into memory
+    # Initialize model manager
     model_manager = ModelManager()
-    await model_manager.load_models()
     app.state.model_manager = model_manager
-    logger.info("ML models loaded", models=model_manager.loaded_model_names)
+
+    # 🔥 Load models in background (NON-BLOCKING FIX)
+    asyncio.create_task(model_manager.load_models())
+
+    logger.info("Model loading started in background")
 
     yield
 
@@ -66,9 +71,9 @@ app.add_middleware(
 )
 
 # ── Static Files ───────────────────────────────────────────────────────────────
-
 if os.path.isdir("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # ── Routers ────────────────────────────────────────────────────────────────────
 app.include_router(health.router, prefix="/api/v1", tags=["Health"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
