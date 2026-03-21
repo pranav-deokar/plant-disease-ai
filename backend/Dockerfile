@@ -26,8 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir uv==0.1.40
 
 COPY requirements.txt .
-RUN uv pip install --system --no-cache --compile-bytecode -r requirements.txt
-
+RUN pip install --no-cache-dir -r requirements.txt
 
 # ── Stage 2: production ─────────────────────────────────────────────────────────
 FROM python:${PYTHON_VERSION}-slim-bookworm AS production
