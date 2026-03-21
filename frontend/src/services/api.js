@@ -10,14 +10,21 @@
 
 import axios from "axios";
 
-const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+// 🔥 AUTO SWITCH BASE URL (DEV + PRODUCTION)
+const BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  (window.location.hostname === "localhost"
+    ? "http://localhost:8000"
+    : "https://plant-disease-ai-5qyh.onrender.com");
+
+const API_V1 = `${BASE_URL}/api/v1`;
 const API_V1 = `${BASE_URL}/api/v1`;
 
 // ── Axios instance ────────────────────────────────────────────────────────────
 export const apiClient = axios.create({
   baseURL: API_V1,
   timeout: 120_000,     // 2 min — prediction can be slow on CPU
-  withCredentials: true,
+
 });
 
 // ── Request interceptor: inject access token ──────────────────────────────────
