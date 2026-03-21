@@ -7,12 +7,15 @@ POST /api/v1/auth/refresh    — rotate refresh token
 POST /api/v1/auth/logout     — revoke refresh token (Redis blacklist)
 GET  /api/v1/auth/me         — return current user profile
 """
+"""
+Authentication Routes
+──────────────────────
+"""
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy import select
@@ -32,15 +35,26 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    # 🔥 FIX: limit bcrypt input (max 72 chars)
+    return pwd_context.hash(plain[:72])
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return pwd_context.verify(plain[:72], hashed)
+
+
+def validate_password(password: str):
+    # 🔥 enforce min 8 chars and max 72 chars
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+    if len(password) > 72:
+        raise HTTPException(status_code=400, detail="Password must be less than 72 characters.")
+
 
 def create_token(data: dict, expires_delta: timedelta) -> str:
     payload = data.copy()
     payload["exp"] = datetime.now(timezone.utc) + expires_delta
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
 
 def create_token_pair(user_id: str, role: str) -> TokenResponse:
     access = create_token(
@@ -62,6 +76,10 @@ def create_token_pair(user_id: str, role: str) -> TokenResponse:
 
 @router.post("/register", response_model=UserProfileResponse, status_code=status.HTTP_201_CREATED)
 async def register(body: UserRegisterRequest, db: AsyncSession = Depends(get_db)):
+
+    # 🔥 PASSWORD VALIDATION
+    validate_password(body.password)
+
     # Check uniqueness
     existing = await db.execute(
         select(User).where((User.email == body.email) | (User.username == body.username))
@@ -79,14 +97,17 @@ async def register(body: UserRegisterRequest, db: AsyncSession = Depends(get_db)
         primary_crops=body.primary_crops or [],
         role=UserRole.FARMER,
     )
+
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
     return user
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(body: UserLoginRequest, db: AsyncSession = Depends(get_db)):
+
     result = await db.execute(select(User).where(User.email == body.email))
     user: Optional[User] = result.scalar_one_or_none()
 
@@ -94,36 +115,13 @@ async def login(body: UserLoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password.",
-            headers={"WWW-Authenticate": "Bearer"},
         )
+
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is deactivated.")
 
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
-
-    return create_token_pair(str(user.id), user.role.value)
-
-
-@router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(request: Request, db: AsyncSession = Depends(get_db)):
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing refresh token.")
-
-    token = auth_header.removeprefix("Bearer ").strip()
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        if payload.get("type") != "refresh":
-            raise HTTPException(status_code=401, detail="Not a refresh token.")
-        user_id = payload["sub"]
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired refresh token.")
-
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user or not user.is_active:
-        raise HTTPException(status_code=401, detail="User not found or inactive.")
 
     return create_token_pair(str(user.id), user.role.value)
 
