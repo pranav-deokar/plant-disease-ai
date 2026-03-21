@@ -50,7 +50,7 @@ class PredictionOutput:
     severity: str
     severity_score: float
     top_k: List[TopPrediction]
-    gradcam_url: Optional[str]
+    _url: Optional[str]
     attention_boxes: list
     image_quality_score: float
     is_leaf_detected: bool
@@ -153,14 +153,14 @@ class PredictionService:
         ]
 
         # ── Step 3: Grad-CAM ──────────────────────────────────────────────────
-        gradcam_url = None
+        _url = None
         attention_boxes = []
         coverage_ratio = 0.0
 
         try:
             # Re-run with grad for Grad-CAM (requires grad)
             tensor_grad = prep_result.tensor.clone().requires_grad_(True)
-            gradcam = GradCAMPlusPlus(loaded_model.model, settings.GRAD_CAM_LAYER)
+             = PlusPlus(loaded_model.model, settings.GRAD_CAM_LAYER)
             cam_result = gradcam.compute(
                 tensor_grad,
                 class_idx=primary_idx,
@@ -174,9 +174,8 @@ class PredictionService:
             # Upload Grad-CAM overlay to S3
             overlay_bytes = encode_overlay_to_bytes(cam_result.overlay_pil)
             gradcam_key = f"gradcam/{prediction_id}/overlay.jpg"
-            gradcam_url = await self.storage.upload_bytes(
-                overlay_bytes, gradcam_key, content_type="image/jpeg"
-            )
+            # Disable S3 upload for Grad-CAM
+            gradcam_url = None
         except Exception as e:
             logger.warning(f"Grad-CAM failed for prediction {prediction_id}: {e}")
             warnings.append("Disease region visualization unavailable.")
@@ -201,9 +200,7 @@ class PredictionService:
 
         # ── Step 6: Upload original image ─────────────────────────────────────
         image_key = f"uploads/{prediction_id}/original{self._get_ext(original_filename)}"
-        image_url = await self.storage.upload_bytes(
-            image_bytes, image_key, content_type="image/jpeg"
-        )
+        image_url = None
 
         # ── Step 7: Persist to DB ─────────────────────────────────────────────
         processing_ms = int((time.perf_counter() - start_time) * 1000)
