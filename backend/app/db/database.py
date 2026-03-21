@@ -1,6 +1,6 @@
 """
 Async SQLAlchemy database configuration.
-Uses asyncpg driver for non-blocking PostgreSQL access.
+Fixed for Supabase + PgBouncer (no prepared statements).
 """
 
 from typing import AsyncGenerator
@@ -10,21 +10,23 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import settings
 import logging
+
 logger = logging.getLogger(__name__)
 
+# 🔥 FIX: disable prepared statements (PgBouncer compatible)
 engine = create_async_engine(
     settings.DATABASE_URL,
-    pool_size=settings.DATABASE_POOL_SIZE,
-    max_overflow=settings.DATABASE_MAX_OVERFLOW,
-    pool_pre_ping=True,         # detect stale connections
-    pool_recycle=3600,          # recycle every hour
+    connect_args={
+        "statement_cache_size": 0  # 🔥 CRITICAL FIX
+    },
+    pool_pre_ping=True,
     echo=settings.DEBUG,
 )
 
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
-    expire_on_commit=False,     # prevent lazy-load after commit in async context
+    expire_on_commit=False,
     autoflush=False,
 )
 
@@ -34,7 +36,7 @@ class Base(DeclarativeBase):
 
 
 async def init_db():
-    """Create all tables that don't exist yet. Run once at startup."""
+    """Create all tables that don't exist yet."""
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
