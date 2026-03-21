@@ -22,30 +22,34 @@ logger = structlog.get_logger()
 
 
 @asynccontextmanager
+
 async def lifespan(app: FastAPI):
-    """Manage application startup and shutdown."""
     setup_logging()
     logger.info("Starting Plant Disease AI System", version=settings.APP_VERSION)
 
-    # Initialize DB
-    await init_db()
-    logger.info("Database initialized")
+    # Initialize DB (safe)
+    try:
+        await init_db()
+        logger.info("Database initialized")
+    except Exception as e:
+        logger.error(f"Database init failed: {e}")
 
-    # Initialize model manager
+    # Model manager (safe)
     model_manager = ModelManager()
     app.state.model_manager = model_manager
 
-    # 🔥 Load models in background (NON-BLOCKING FIX)
+    import asyncio
     asyncio.create_task(model_manager.load_models())
 
-    logger.info("Model loading started in background")
+    logger.info("Startup completed")
 
     yield
 
-    # Cleanup
     logger.info("Shutting down Plant Disease AI System")
-    await model_manager.unload_models()
-
+    try:
+        await model_manager.unload_models()
+    except:
+        pass
 
 app = FastAPI(
     title="Plant Disease Detection & Advisory System",
