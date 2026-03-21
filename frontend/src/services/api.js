@@ -17,7 +17,7 @@ const API_V1 = `${BASE_URL}/api/v1`;
 export const apiClient = axios.create({
   baseURL: API_V1,
   timeout: 120_000,     // 2 min — prediction can be slow on CPU
-  withCredentials: false,
+  withCredentials: true,
 });
 
 // ── Request interceptor: inject access token ──────────────────────────────────
