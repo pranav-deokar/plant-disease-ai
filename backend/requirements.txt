@@ -12,7 +12,8 @@ python-multipart==0.0.9       # file uploads
 
 # ── Auth & Security ────────────────────────────────────────────────────────────
 python-jose[cryptography]==3.3.*
-passlib[bcrypt]==1.7.*
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 cryptography==42.*
 
 # ── Database ───────────────────────────────────────────────────────────────────
