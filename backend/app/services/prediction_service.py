@@ -219,7 +219,7 @@ class PredictionService:
             severity=severity.value,
             severity_score=severity_score,
             top_k=top_predictions,
-            gradcam_url=gradcam_url,
+            
             attention_boxes=attention_boxes,
             image_quality_score=prep_result.quality_score,
             is_leaf_detected=prep_result.is_leaf_detected,
