@@ -17,8 +17,10 @@ logger = logging.getLogger(__name__)
 engine = create_async_engine(
     settings.DATABASE_URL,
     connect_args={
-        "statement_cache_size": 0  # 🔥 CRITICAL FIX
+        "statement_cache_size": 0,   # disable asyncpg cache
+        "prepared_statement_cache_size": 0  # 🔥 THIS IS MISSING
     },
+    poolclass=None,  # 🔥 disable SQLAlchemy pooling (important for PgBouncer)
     pool_pre_ping=True,
     echo=settings.DEBUG,
 )
