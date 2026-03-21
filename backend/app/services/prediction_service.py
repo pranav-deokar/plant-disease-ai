@@ -153,32 +153,10 @@ class PredictionService:
         ]
 
         # ── Step 3: Grad-CAM ──────────────────────────────────────────────────
-        _url = None
+       # ── Step 3: Grad-CAM (DISABLED) ─────────────────────────────────────────
+        gradcam_url = None
         attention_boxes = []
         coverage_ratio = 0.0
-
-        try:
-            # Re-run with grad for Grad-CAM (requires grad)
-            tensor_grad = prep_result.tensor.clone().requires_grad_(True)
-             = PlusPlus(loaded_model.model, settings.GRAD_CAM_LAYER)
-            cam_result = gradcam.compute(
-                tensor_grad,
-                class_idx=primary_idx,
-                original_image=prep_result.original_image,
-            )
-            gradcam.remove_hooks()
-
-            attention_boxes = cam_result.attention_boxes
-            coverage_ratio = cam_result.coverage_ratio
-
-            # Upload Grad-CAM overlay to S3
-            overlay_bytes = encode_overlay_to_bytes(cam_result.overlay_pil)
-            gradcam_key = f"gradcam/{prediction_id}/overlay.jpg"
-            # Disable S3 upload for Grad-CAM
-            gradcam_url = None
-        except Exception as e:
-            logger.warning(f"Grad-CAM failed for prediction {prediction_id}: {e}")
-            warnings.append("Disease region visualization unavailable.")
 
         # ── Step 4: Severity Estimation ───────────────────────────────────────
         is_healthy = primary_disease_code.endswith("healthy")
