@@ -5,6 +5,24 @@ and providing structured treatment recommendations to farmers.
 
 ---
 
+## 🚀 Live Demo
+
+🌐 Frontend: https://plant-disease-ai1-pranav-deokars-projects.vercel.app/ 
+⚙️ Backend API: https://plant-disease-ai-5qyh.onrender.com/api/v1/health
+
+⚠️ Note:
+Backend is hosted on Render free tier.  
+If it is inactive:
+1. Open backend link first  
+2. Wait 20–30 seconds
+   (   Until you see
+      {"status":"ok","service":"Plant Disease AI","version":"1.0.0","uptime_seconds":18}
+   )
+4. Then use frontend  
+
+
+
+
 ## Table of Contents
 
 1. [System Architecture](#system-architecture)
@@ -175,19 +193,15 @@ plant_disease_ai/
 |--------------------|-------------------------------------|---------------------------------------|
 | **ML Model**       | PyTorch + EfficientNet-B4           | Disease classification (38 classes)   |
 | **Fallback Model** | MobileNetV3-Large                   | Edge / low-latency inference          |
-| **Explainability** | Grad-CAM++                          | Disease region visualization          |
 | **Image Processing**| OpenCV + Pillow                    | Preprocessing, segmentation           |
 | **Backend API**    | FastAPI + Uvicorn                   | High-performance async REST API       |
-| **Task Queue**     | Celery + Redis                      | Async jobs, model retraining          |
 | **Primary DB**     | PostgreSQL (asyncpg)                | Users, predictions, history           |
 | **Knowledge Base** | MongoDB (Motor)                     | Disease articles, treatments          |
 | **Cache**          | Redis                               | Prediction caching, session store     |
-| **Object Storage** | S3 / MinIO                          | Images, Grad-CAM overlays             |
+| **Object Storage** |      MinIO                          | Images, Grad-CAM overlays             |
 | **Experiment Tracking** | MLflow                         | Training runs, model registry         |
 | **Frontend**       | React 18 + TailwindCSS              | Farmer UI                             |
-| **Infrastructure** | Docker + Kubernetes                 | Containerized deployment              |
-| **Monitoring**     | Prometheus + Grafana                | Metrics, alerting                     |
-| **Logging**        | structlog + Sentry                  | Structured logs, error tracking       |
+| **Infrastructure** | Docker                              | Containerized deployment              |
 
 ---
 
@@ -376,20 +390,6 @@ async_mode: false       # Optional. Return immediately, poll for result
 
 ## Deployment (Production)
 
-### Kubernetes (Recommended)
-
-```bash
-# Build and push images
-docker build -t your-registry/plant-disease-api:v1.0.0 backend/
-docker push your-registry/plant-disease-api:v1.0.0
-
-# Deploy to Kubernetes
-kubectl apply -f infrastructure/kubernetes/
-
-# Check rollout
-kubectl rollout status deployment/plant-disease-api
-```
-
 ### Environment variables for production
 
 ```bash
@@ -418,7 +418,6 @@ Grafana dashboards available at http://localhost:3001 after startup:
 | Prediction Overview    | Requests/min, avg latency, error rate         |
 | Model Performance      | Confidence distribution, class distribution   |
 | System Health          | CPU, GPU memory, DB connections               |
-| Celery Queue           | Queue depth, worker utilization               |
 | Business Metrics       | Daily predictions, top diseases detected      |
 
 ---
