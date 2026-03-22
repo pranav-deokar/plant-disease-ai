@@ -12,7 +12,9 @@ and providing structured treatment recommendations to farmers.
 
 ⚠️ Note:
 Backend is hosted on Render free tier.  
+IMPORTANT: THE BACKEND TAKES TIME TO WAKEUP 
 If it is inactive:
+
 1. Open backend link first  
 2. Wait 20–30 seconds
    (   Until you see
