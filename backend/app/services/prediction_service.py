@@ -50,7 +50,7 @@ class PredictionOutput:
     severity: str
     severity_score: float
     top_k: List[TopPrediction]
-    _url: Optional[str]
+    
     attention_boxes: list
     image_quality_score: float
     is_leaf_detected: bool
@@ -200,7 +200,7 @@ class PredictionService:
                 {"disease_code": p.disease_code, "confidence": p.confidence}
                 for p in top_predictions
             ],
-            gradcam_key=gradcam_key if gradcam_url else None,
+            gradcam_key=None,
             gradcam_url=gradcam_url,
             attention_regions=attention_boxes,
             model_name=loaded_model.name,
