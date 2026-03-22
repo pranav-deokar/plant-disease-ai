@@ -289,7 +289,7 @@ def _to_response(result) -> PredictionResponse:
             }
             for p in result.top_k
         ],
-        gradcam_url=result.gradcam_url,
+        gradcam_url=None,
         attention_boxes=result.attention_boxes,
         image_quality_score=result.image_quality_score,
         is_leaf_detected=result.is_leaf_detected,
